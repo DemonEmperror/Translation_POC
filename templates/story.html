@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>English Story</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="content">
+        <h1>The Brave Little Fox</h1>
+        <p>Once upon a time, in a dense forest, lived a little fox. He was small but very brave.</p>
+        <p>One day, the fox saw a lion trapped in a hunter’s net. Instead of running away, the fox helped the lion escape.</p>
+        <p>The lion thanked the fox and promised to protect him forever. From that day, the fox was known as the bravest in the forest.</p>
+    </div>
+
+    <button id="translate-btn">🌍 Translate to Spanish</button>
+
+    <script>
+        document.getElementById("translate-btn").addEventListener("click", async () => {
+            const html = document.documentElement.innerHTML;
+            const formData = new FormData();
+            formData.append("html", html);
+
+            let response = await fetch("/translate", {
+                method: "POST",
+                body: formData
+            });
+
+            if (response.ok) {
+                let translatedHTML = await response.text();
+                document.open();
+                document.write(translatedHTML);
+                document.close();
+            } else {
+                alert("Translation failed!");
+            }
+        });
+    </script>
+</body>
+</html>
