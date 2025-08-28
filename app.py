@@ -10,7 +10,7 @@ def home():
 
 @app.route('/translate', methods=['POST'])
 def translate():
-    data = request.get_json()
+    data = request.get_json(force=True)
     texts = data.get("text", {})
     target_lang = data.get("target_lang", "es")
 
@@ -27,22 +27,33 @@ def translate():
             url = "https://translate.googleapis.com/translate_a/single"
             params = {
                 "client": "gtx",
-                "sl": "auto",   # detect source automatically
-                "tl": target_lang,  # target language comes from frontend
+                "sl": "auto",     # auto detect
+                "tl": target_lang,
                 "dt": "t",
                 "q": text,
             }
 
-            response = requests.get(url, params=params, verify=False)
+            response = requests.get(url, params=params, timeout=10)
             result = response.json()
 
-            # ✅ Join translated chunks
-            translated_text = " ".join([item[0] for item in result[0] if item[0]])
+            # ✅ Defensive parsing
+            if result and isinstance(result, list) and len(result) > 0:
+                chunks = []
+                for item in result[0]:
+                    if isinstance(item, list) and item[0]:
+                        chunks.append(item[0])
+                translated_text = " ".join(chunks)
+            else:
+                translated_text = text  # fallback = original text
+
             translated[key] = translated_text
 
         return jsonify({"translated_text": translated})
 
     except Exception as e:
+        # ✅ Add debugging info in logs
+        import traceback
+        print("ERROR in /translate:", traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 
