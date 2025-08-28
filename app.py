@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 import requests
-import os  # ✅ Import os for reading environment variables
+import os
 
 app = Flask(__name__)
 
@@ -11,32 +11,41 @@ def home():
 @app.route('/translate', methods=['POST'])
 def translate():
     data = request.get_json()
-    text = data.get("text", "")
-    if not text:
+    texts = data.get("text", {})
+    target_lang = data.get("target_lang", "es")
+
+    if not texts:
         return jsonify({"error": "No text provided"}), 400
 
+    translated = {}
     try:
-        url = "https://translate.googleapis.com/translate_a/single"
-        params = {
-            "client": "gtx",
-            "sl": "en",   # source language
-            "tl": "es",   # target language
-            "dt": "t",
-            "q": text,
-        }
+        for key, text in texts.items():
+            if not text:
+                translated[key] = ""
+                continue
 
-        response = requests.get(url, params=params, verify=False)
-        result = response.json()
+            url = "https://translate.googleapis.com/translate_a/single"
+            params = {
+                "client": "gtx",
+                "sl": "auto",   # detect source automatically
+                "tl": target_lang,  # target language comes from frontend
+                "dt": "t",
+                "q": text,
+            }
 
-        # ✅ Safely join translated chunks with spaces
-        translated_text = " ".join([item[0] for item in result[0] if item[0]])
+            response = requests.get(url, params=params, verify=False)
+            result = response.json()
 
-        return jsonify({"translated_text": translated_text})
+            # ✅ Join translated chunks
+            translated_text = " ".join([item[0] for item in result[0] if item[0]])
+            translated[key] = translated_text
+
+        return jsonify({"translated_text": translated})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
-    # ✅ Now supports local run + deployment
+    # ✅ Works locally and in deployment
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8081)), debug=True)
